@@ -262,7 +262,7 @@ void SPrintFW(byte j, boolean k) {
     Serial.print(F("sol_Gridpower= ")); Serial.println(sol_Gridpower[j]);
     Serial.print(F("sol_Totalpower= ")); Serial.println(sol_Totalpower[j]);
     Serial.print(F("sol_TotalOpTime= ")); Serial.println(sol_TotalOpTime[j]);
-    Serial.print(F("sol_Flag= ")); Serial.println(sol_Flag[j]);
+    Serial.print(F("sol_Flag= ")); Serial.println(sol_Flag[j], HEX);
     Serial.print("sol_TotalpowerSaved= "); Serial.println(sol_TotalpowerSaved[j]);
     if (j == 0) {
       int IdxStart1 = EEPROMwl.getStartIndexEEPROM(IDX_VAR1);
@@ -424,14 +424,11 @@ void DisplDS(byte j) {
   sprintf(timeStr, "%04ldh ", (sol_TotalOpTime[j] / 60));
   TFT.print(timeStr);
 
-
-  if (sol_Flag[j] != 0x00) {           // Print error flags
-    TFT.setColor(255, 0, 255);         // Zeichenfarbe magenta für Alarm-Flags
-    TFT.setPrintPos(1, Lnx + 32);
-    TFT.print(j + 1);
-    TFT.print(F("! Alarmflag: "));
-    TFT.print(sol_Flag[j], HEX);
-  }
+  TFT.setColor(255, 0, 255);         // Zeichenfarbe magenta für Alarm-Flags
+  TFT.setPrintPos(1, Lnx + 32);
+  TFT.print(j + 1);
+  TFT.print(F("! Alarmflag: "));
+  TFT.print(sol_Flag[j], HEX);
 }
 
 void DispSetup1(byte j){
@@ -573,6 +570,7 @@ void loop() {
           loop_setEEPROMdata(iii);
         }
         sol_TotalOpTime[iii] = sol.TotalOperaTime;
+        sol_Flag[iii] = sol.Flag;
       } else {
         sol_Gridpower[iii] = 0;
         sol_PVvolt[iii] = 0;
