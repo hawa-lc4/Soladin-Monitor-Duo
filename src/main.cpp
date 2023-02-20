@@ -421,7 +421,7 @@ void DisplDS(byte j) {
   TFT.print(float(sol_Totalpower[j]) / 100, 0);
   TFT.print(F("kWh  "));
   char timeStr[14];
-  sprintf(timeStr, "%04ldh ", (sol.TotalOperaTime / 60));
+  sprintf(timeStr, "%04ldh ", (sol_TotalOpTime[j] / 60));
   TFT.print(timeStr);
 
 
