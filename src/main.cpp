@@ -1,5 +1,5 @@
 /*
-   hawa 09.01.2023
+   hawa-lc4 09.01.2023
    Board: Arduino Nano V3.0
 */
 /*
