@@ -11,3 +11,4 @@ Bei Interesse: ich habe auch eine Version für einen Wechselrichter sowie die Or
 Paket vom github-download in 2018.
 Als weitere Quelle für dieses Projekt diente mir auch: https://www.solget.nl/
 Achtung: in einigen Dokumentationen ist ein Fehler bezüglich des Schnittstellenanschlußes zum WR enthalten.
+ 
