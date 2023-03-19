@@ -9,6 +9,8 @@ Die Quelle der hier verwendeten Bibliotheken Soladin.h und Soladin.cpp ist auf g
 
 Bei Interesse: ich habe auch eine Version für einen Wechselrichter sowie die Original-Dateien aus dem Soladin-master
 Paket vom github-download in 2018.
+
 Als weitere Quelle für dieses Projekt diente mir auch: https://www.solget.nl/
+
 Achtung: in einigen Dokumentationen ist ein Fehler bezüglich des Schnittstellenanschlußes zum WR enthalten.
  
