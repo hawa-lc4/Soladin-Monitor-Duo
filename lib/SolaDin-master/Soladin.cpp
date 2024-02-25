@@ -38,7 +38,6 @@ bool Soladin::query(uint8_t Cmdo,uint8_t _day){  // overload
 		conCat(Cmdo, _day, TxBuf);
 	return(txRx(Cmdo));
 	}
-	return false;
 }
 
 // send the commando, and process the result
@@ -71,7 +70,7 @@ void Soladin::conCat(uint8_t _cmd, uint8_t _act, char *OutBuf)  {
 	if (_cmd == PRB) {
 		OutBuf[0] = null ; } // Destination Address
 	else {
-		OutBuf[0] = desti ; } // Destination Address
+		OutBuf[0] = dest ; } // Destination Address
 		OutBuf[4] = _cmd ;   // Comando
 	if (_cmd == ZMP) {
 		OutBuf[5] = Ac_zmp ; }  // action reset max power
@@ -104,7 +103,7 @@ int Soladin::PolRxBuf(uint8_t Cmd){
 				RxBuf[i] = _serial->read();
 				i++ ;
 				}   
-			if (byte(RxBuf[2]) != desti) {    
+			if (byte(RxBuf[2]) != dest) {    
 				error = 1;     // not from slave 
 				}  
 			else if (byte(RxBuf[4]) != byte(Cmd) ) {

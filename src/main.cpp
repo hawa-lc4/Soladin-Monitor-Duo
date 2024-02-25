@@ -105,7 +105,7 @@
 // includes:
 #include <Arduino.h>
 #include <EEPROMWearLevel.h>
-#include <Soladin.h>
+#include "Soladin.h"
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include "Ucglib.h"

@@ -8,16 +8,16 @@
 #define Soladin_h
 
 // commands
-#define PRB 0xC1   // probe
-#define FWI 0xB4   // firmware info
-#define DVS 0xB6   // current data
-#define HSD 0x9A   // history data
-#define RMP 0xB9   // read max. power
-#define ZMP 0x97   // reset max. power to zero
+#define PRB 0xC1
+#define FWI 0xB4
+#define DVS 0xB6
+#define HSD 0x9A
+#define RMP 0xB9
+#define ZMP 0x97
 
 // adress
 #define null 0x00
-#define desti 0x11
+#define dest 0x11
 
 // action
 #define Ac_zmp 0x01
@@ -25,7 +25,7 @@
 #define TimeOut 100  // 100 ms
 #define dly 50   // 50 ms  give me time to push some buttons
 
-#include "Arduino.h"
+//#include "Arduino.h"
 #include <SoftwareSerial.h>
 
 
@@ -78,3 +78,5 @@ class Soladin
 };
 
 #endif
+
+
