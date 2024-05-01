@@ -76,6 +76,8 @@
   - Speicherung des letzten Stand von sol_Totalpower im EEPROM um einen Wert liefern zu können 
     auch wenn ein Neustart in der Nacht stattfand. Es ist noch nicht klar ob das sauber läuft.
 
+  01.05.2024: "v0.90d"
+  - Nur Löschung der gespeicherten Werte (historical data) für savedTotalPowS1 und savedTotalPowS2.
 
 
   Dokumentationen:
@@ -110,7 +112,7 @@
 #include <SPI.h>
 #include "Ucglib.h"
 
-#define SysVer "v0.89d"     // System-Version; immer anpassen!!!
+#define SysVer "v0.90d"     // System-Version; immer anpassen!!!
 #define NoOfSol 2           // Soladin Monitor Duo = 2 Soladin WR; das hier wird auch nur mit 2 funktionieren!!!!
 #define DispA0 A0           // Display Command Data (A0)
 #define DispCS 8            // Display Chip Select
@@ -177,8 +179,10 @@ uint32_t sol_Totalpower[NoOfSol];
 uint32_t sol_TotalpowerSaved[NoOfSol];
 uint32_t sol_TotalOpTime[NoOfSol];
 uint16_t sol_Flag[NoOfSol];
-const uint32_t savedTotalPowS1 = 179274;
-const uint32_t savedTotalPowS2 = 190270;
+// const uint32_t savedTotalPowS1 = 179274;     // historical data
+// const uint32_t savedTotalPowS2 = 190270;     // historical data
+const uint32_t savedTotalPowS1 = 0;
+const uint32_t savedTotalPowS2 = 0;
 uint16_t dataLength1 = sizeof(savedTotalPowS1);
 uint16_t dataLength2 = sizeof(savedTotalPowS2);
 
@@ -204,8 +208,8 @@ void SPrintflag() {
   if ( sol.Flag & 0x0080 )Serial.println(F(" Temperature to high"));
   if ( sol.Flag & 0x0100 )Serial.println(F(" Hardware failure"));
   if ( sol.Flag & 0x0200 )Serial.println(F(" Starting"));
-  if ( sol.Flag & 0x0400 )Serial.println(F(" Max Power"));
-  if ( sol.Flag & 0x0800 )Serial.println(F(" Max current"));
+  if ( sol.Flag & 0x0400 )Serial.println(F(" Max Power reached"));
+  if ( sol.Flag & 0x0800 )Serial.println(F(" Max current reached"));
 }
 
 void SPrintDS(boolean k) {
@@ -303,6 +307,7 @@ void SPrintMenu(){
   Serial.println(F("d - read device status"));
   Serial.println(F("h - read history data"));
   Serial.println(F("o - show mySerial output string"));
+  // Serial.println(F("e - erase EEPROM data for sol_TotalpowerSaved! 3x 'e'"));
   Serial.println(F("s - goto Setup! 3x 's'"));
   Serial.println();
 }
@@ -491,6 +496,20 @@ void setup_EEPROMcheckData() {
   sol_Totalpower[0] = sol_TotalpowerSaved[0];
   sol_Totalpower[1] = sol_TotalpowerSaved[1];
 }
+
+// void menu_eraseEEPROMdata() {
+//   EEPROMwl.put(IDX_VAR1, 0);
+//   EEPROMwl.put(IDX_VAR2, 0);
+//   EEPROMwl.get(IDX_VAR1, sol_TotalpowerSaved[0]);
+//   EEPROMwl.get(IDX_VAR2, sol_TotalpowerSaved[1]);
+//   sol_Totalpower[0] = sol_TotalpowerSaved[0];
+//   sol_Totalpower[1] = sol_TotalpowerSaved[1];
+//   for (iii = 0; iii < NoOfSol; iii++){
+//     SPrintFW(iii, true);
+//     doSU = 0;
+//   }
+//   doSU = 0;
+// }
 
 void loop_setEEPROMdata(byte j) {
   if (sol_Totalpower[j] > (sol_TotalpowerSaved[j] + 100)) {     // schreibe in's EEPROM nur wenn +1kWh
@@ -687,6 +706,12 @@ void loop() {
         doHD1(sol.query(PRB));
         doSU = 0;
         break;
+      // case 'e':                                   // erase EEPROM data
+      //   doSU++;
+      //   Serial.print(F("Achtung: Löschen der EEPROM Daten!  #"));
+      //   Serial.println(doSU);
+      //   if (doSU == 3) {delay(500); menu_eraseEEPROMdata();}
+      //   break;
       case 's':                                   // Software Reset
         doSU++;
         Serial.print(F("Achtung: Reset durch Aufruf von setup!  #"));
