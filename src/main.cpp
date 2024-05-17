@@ -73,11 +73,13 @@
 
   21.01.2023: "v0.89d"
   - sol_Gridpower wird immer mit "0" geliefert wenn die WR abgeschaltet sind.
-  - Speicherung des letzten Stand von sol_Totalpower im EEPROM um einen Wert liefern zu können 
+  - Speicherung des letzten Stand von sol_TotalEnergy im EEPROM um einen Wert liefern zu können 
     auch wenn ein Neustart in der Nacht stattfand. Es ist noch nicht klar ob das sauber läuft.
 
-  01.05.2024: "v0.90d"
-  - Nur Löschung der gespeicherten Werte (historical data) für savedTotalPowS1 und savedTotalPowS2.
+  17.05.2024: "v0.90d"
+  - Nur Löschung der gespeicherten Werte (historical data).
+  - Einbau der Funktion die Daten im EEPROM zu löschen und durch die Daten neu angeschlossener
+    Wechselrichter zu ersetzen.
 
 
   Dokumentationen:
@@ -107,10 +109,10 @@
 // includes:
 #include <Arduino.h>
 #include <EEPROMWearLevel.h>
-#include "Soladin.h"
+#include <Soladin.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
-#include "Ucglib.h"
+#include <Ucglib.h>
 
 #define SysVer "v0.90d"     // System-Version; immer anpassen!!!
 #define NoOfSol 2           // Soladin Monitor Duo = 2 Soladin WR; das hier wird auch nur mit 2 funktionieren!!!!
@@ -175,16 +177,17 @@ uint16_t sol_FW_date[NoOfSol];
 uint16_t sol_PVvolt[NoOfSol];
 uint16_t sol_PVamp[NoOfSol];
 uint16_t sol_Gridpower[NoOfSol];
-uint32_t sol_Totalpower[NoOfSol];
-uint32_t sol_TotalpowerSaved[NoOfSol];
+uint32_t sol_TotalEnergy[NoOfSol];
+uint32_t sol_TotalEnergySaved[NoOfSol];
 uint32_t sol_TotalOpTime[NoOfSol];
 uint16_t sol_Flag[NoOfSol];
 // const uint32_t savedTotalPowS1 = 179274;     // historical data
 // const uint32_t savedTotalPowS2 = 190270;     // historical data
-const uint32_t savedTotalPowS1 = 0;
-const uint32_t savedTotalPowS2 = 0;
-uint16_t dataLength1 = sizeof(savedTotalPowS1);
-uint16_t dataLength2 = sizeof(savedTotalPowS2);
+// const uint32_t savedTotalPowS1 = 0;
+// const uint32_t savedTotalPowS2 = 0;
+// uint16_t dataLength1 = sizeof(savedTotalPowS1);
+// uint16_t dataLength2 = sizeof(savedTotalPowS2);
+uint8_t dataLength = 4;
 
 SoftwareSerial solcom1(5, 4);     // serial to conect to Soladin#1 Rx=5 Tx=4
 SoftwareSerial solcom2(3, 2);     // serial to conect to Soladin#2 Rx=3 Tx=2
@@ -264,21 +267,21 @@ void SPrintFW(byte j, boolean k) {
     Serial.print(F("sol_PVvolt= ")); Serial.println(sol_PVvolt[j]);
     Serial.print(F("sol_PVamp= ")); Serial.println(sol_PVamp[j]);
     Serial.print(F("sol_Gridpower= ")); Serial.println(sol_Gridpower[j]);
-    Serial.print(F("sol_Totalpower= ")); Serial.println(sol_Totalpower[j]);
+    Serial.print(F("sol_TotalEnergy= ")); Serial.println(sol_TotalEnergy[j]);
     Serial.print(F("sol_TotalOpTime= ")); Serial.println(sol_TotalOpTime[j]);
     Serial.print(F("sol_Flag= ")); Serial.println(sol_Flag[j], HEX);
-    Serial.print("sol_TotalpowerSaved= "); Serial.println(sol_TotalpowerSaved[j]);
+    Serial.print("sol_TotalEnergySaved= "); Serial.println(sol_TotalEnergySaved[j]);
     if (j == 0) {
       int IdxStart1 = EEPROMwl.getStartIndexEEPROM(IDX_VAR1);
-      int IdxCurr1 = EEPROMwl.getCurrentIndexEEPROM(IDX_VAR1, dataLength1);
-      Serial.print("sol_TotalpowerSaved written: ");
-      Serial.print((IdxCurr1 - IdxStart1 + dataLength1) / dataLength1);
+      int IdxCurr1 = EEPROMwl.getCurrentIndexEEPROM(IDX_VAR1, dataLength);
+      Serial.print("sol_TotalEnergySaved written: ");
+      Serial.print((IdxCurr1 - IdxStart1 + dataLength) / dataLength);
     }
     if (j == 1) {
       int IdxStart2 = EEPROMwl.getStartIndexEEPROM(IDX_VAR2);
-      int IdxCurr2 = EEPROMwl.getCurrentIndexEEPROM(IDX_VAR2, dataLength2);
-      Serial.print("sol_TotalpowerSaved written: ");
-      Serial.print((IdxCurr2 - IdxStart2 + dataLength2) / dataLength2);
+      int IdxCurr2 = EEPROMwl.getCurrentIndexEEPROM(IDX_VAR2, dataLength);
+      Serial.print("sol_TotalEnergySaved written: ");
+      Serial.print((IdxCurr2 - IdxStart2 + dataLength) / dataLength);
     }
     Serial.println(" times\n");
   }
@@ -307,7 +310,7 @@ void SPrintMenu(){
   Serial.println(F("d - read device status"));
   Serial.println(F("h - read history data"));
   Serial.println(F("o - show mySerial output string"));
-  // Serial.println(F("e - erase EEPROM data for sol_TotalpowerSaved! 3x 'e'"));
+  Serial.println(F("e - erase EEPROM data for sol_TotalEnergySaved! 3x 'e'"));
   Serial.println(F("s - goto Setup! 3x 's'"));
   Serial.println();
 }
@@ -319,7 +322,7 @@ void SPrintMSOut(){
     Serial.print("0");
   }
   Serial.print(";");
-  Serial.print(sol_Totalpower[0]);
+  Serial.print(sol_TotalEnergy[0]);
   Serial.print(";");
   if (sol_present[1]){
     Serial.print(sol_Gridpower[1]);
@@ -327,7 +330,7 @@ void SPrintMSOut(){
     Serial.print("0");
   }
   Serial.print(";");
-  Serial.print(sol_Totalpower[1]);
+  Serial.print(sol_TotalEnergy[1]);
   Serial.print(";!\n");
 }
 
@@ -423,7 +426,7 @@ void DisplDS(byte j) {
   TFT.print((char)187);             // Achtung: Font; Zeichen  >>
   TFT.print(j + 1);
   TFT.print(F(": "));
-  TFT.print(float(sol_Totalpower[j]) / 100, 0);
+  TFT.print(float(sol_TotalEnergy[j]) / 100, 0);
   TFT.print(F("kWh  "));
   char timeStr[14];
   sprintf(timeStr, "%04ldh ", (sol_TotalOpTime[j] / 60));
@@ -489,33 +492,30 @@ Routinen für die Datenspeicherung im EEPROM
 void setup_EEPROMcheckData() {
   EEPROMwl.begin(EEPROM_LAYOUT_VERSION, AMOUNT_OF_INDEXES);
   EEPROMwl.printStatus(Serial);
-  if (EEPROMwl.getCurrentIndexEEPROM(IDX_VAR1, dataLength1) < 0) EEPROMwl.put(IDX_VAR1, savedTotalPowS1);
-  if (EEPROMwl.getCurrentIndexEEPROM(IDX_VAR2, dataLength2) < 0) EEPROMwl.put(IDX_VAR2, savedTotalPowS2);
-  EEPROMwl.get(IDX_VAR1, sol_TotalpowerSaved[0]);
-  EEPROMwl.get(IDX_VAR2, sol_TotalpowerSaved[1]);
-  sol_Totalpower[0] = sol_TotalpowerSaved[0];
-  sol_Totalpower[1] = sol_TotalpowerSaved[1];
+  sol_TotalEnergy[0] = 0;
+  sol_TotalEnergy[1] = 0;
+  if (EEPROMwl.getCurrentIndexEEPROM(IDX_VAR1, dataLength) < 0) EEPROMwl.put(IDX_VAR1, sol_TotalEnergy[0]);
+  if (EEPROMwl.getCurrentIndexEEPROM(IDX_VAR2, dataLength) < 0) EEPROMwl.put(IDX_VAR2, sol_TotalEnergy[1]);
+  EEPROMwl.get(IDX_VAR1, sol_TotalEnergySaved[0]);
+  EEPROMwl.get(IDX_VAR2, sol_TotalEnergySaved[1]);
+  sol_TotalEnergy[0] = sol_TotalEnergySaved[0];
+  sol_TotalEnergy[1] = sol_TotalEnergySaved[1];
 }
 
-// void menu_eraseEEPROMdata() {
-//   EEPROMwl.put(IDX_VAR1, 0);
-//   EEPROMwl.put(IDX_VAR2, 0);
-//   EEPROMwl.get(IDX_VAR1, sol_TotalpowerSaved[0]);
-//   EEPROMwl.get(IDX_VAR2, sol_TotalpowerSaved[1]);
-//   sol_Totalpower[0] = sol_TotalpowerSaved[0];
-//   sol_Totalpower[1] = sol_TotalpowerSaved[1];
-//   for (iii = 0; iii < NoOfSol; iii++){
-//     SPrintFW(iii, true);
-//     doSU = 0;
-//   }
-//   doSU = 0;
-// }
-
-void loop_setEEPROMdata(byte j) {
-  if (sol_Totalpower[j] > (sol_TotalpowerSaved[j] + 100)) {     // schreibe in's EEPROM nur wenn +1kWh
-    if (j == 0) EEPROMwl.put(IDX_VAR1, sol_Totalpower[j]);
-    if (j == 1) EEPROMwl.put(IDX_VAR2, sol_Totalpower[j]);
+void menu_eraseEEPROMdata() {
+  sol_TotalEnergy[0] = 0;
+  sol_TotalEnergy[1] = 0;
+  EEPROMwl.put(IDX_VAR1, sol_TotalEnergy[0]);
+  EEPROMwl.put(IDX_VAR2, sol_TotalEnergy[1]);
+  EEPROMwl.get(IDX_VAR1, sol_TotalEnergySaved[0]);
+  EEPROMwl.get(IDX_VAR2, sol_TotalEnergySaved[1]);
+  sol_TotalEnergy[0] = sol_TotalEnergySaved[0];
+  sol_TotalEnergy[1] = sol_TotalEnergySaved[1];
+  for (iii = 0; iii < NoOfSol; iii++){
+    SPrintFW(iii, true);
+    doSU = 0;
   }
+  doSU = 0;
 }
 
 
@@ -536,7 +536,6 @@ void setup() {
   mySerial.begin(38400);
 
   // initialisiere PINs:
-  // pinMode(DispA0, OUTPUT);             // braucht's das??? das ist Teil des SPI
   pinMode(HDQ, INPUT_PULLUP);
   pinMode(DispLED, OUTPUT);
   analogWrite(DispLED, 196);              // Display hell
@@ -561,32 +560,32 @@ void setup() {
     }
   }
 
+  delay(3333);  // den delay im setup lassen wir mal durchgehen  ;)
   SPrintMenu();
   doSU = 0;
-  delay(3333);  // den delay im setup lassen wir mal durchgehen  ;)
   DispHead();
   Serial.println(F("Setup ... done\n"));
 } // end setup
 
 
 void loop() {
-  if (!mySerial.isListening()) mySerial.listen();  // muß rein sonst liest mySerial nicht mit.  echt jetzt??
+  if (!mySerial.isListening()) mySerial.listen();     // muß rein sonst liest mySerial nicht mit.  echt jetzt??
   timeNow = millis();
-  if (timeNow - prevQuery >= interval1) {            // Wartezeit abgelaufen; jetzt neue Abfrage der WR
+  if (timeNow - prevQuery >= interval1) {             // Wartezeit abgelaufen; jetzt neue Abfrage der WR
 
     for (iii = 0; iii < NoOfSol; iii++){
       if (iii == 0){solcom1.listen(); sol.begin(&solcom1);}
       if (iii == 1){solcom2.listen(); sol.begin(&solcom2);}
       sol_present[iii] = sol.query(DVS);
-      // Serial.println("\n >>> Soladin-" + (iii + 1));
-      // SPrintDS(sol_present[iii]);
       if (sol_present[iii]){
         sol_Gridpower[iii] = sol.Gridpower;
         sol_PVvolt[iii] = sol.PVvolt;
         sol_PVamp[iii] = sol.PVamp;
-        if (sol_Totalpower[iii] < sol.Totalpower && (sol_Totalpower[iii] + 500) > sol.Totalpower) { // keine Sprünge größer +5kWh
-          sol_Totalpower[iii] = sol.Totalpower;
-          loop_setEEPROMdata(iii);
+        if (sol_TotalEnergy[iii] + 200 < sol.Totalpower) { // schreibe in's EEPROM nur wenn mindestens +2kWh
+          sol_TotalEnergy[iii] = sol.Totalpower;
+          if (iii == 0) EEPROMwl.put(IDX_VAR1, sol_TotalEnergy[iii]);
+          if (iii == 1) EEPROMwl.put(IDX_VAR2, sol_TotalEnergy[iii]);
+
         }
         sol_TotalOpTime[iii] = sol.TotalOperaTime;
         sol_Flag[iii] = sol.Flag;
@@ -603,7 +602,7 @@ void loop() {
       mySerial.print("0");
     }
     mySerial.print(";");
-    mySerial.print(sol_Totalpower[0]);
+    mySerial.print(sol_TotalEnergy[0]);
     mySerial.print(";");
     if (sol_present[1]){
       mySerial.print(sol_Gridpower[1]);
@@ -611,7 +610,7 @@ void loop() {
       mySerial.print("0");
     }
     mySerial.print(";");
-    mySerial.print(sol_Totalpower[1]);
+    mySerial.print(sol_TotalEnergy[1]);
     mySerial.print(";!\n");
     // SPrintMSOut();   // debug!!
 
@@ -706,12 +705,12 @@ void loop() {
         doHD1(sol.query(PRB));
         doSU = 0;
         break;
-      // case 'e':                                   // erase EEPROM data
-      //   doSU++;
-      //   Serial.print(F("Achtung: Löschen der EEPROM Daten!  #"));
-      //   Serial.println(doSU);
-      //   if (doSU == 3) {delay(500); menu_eraseEEPROMdata();}
-      //   break;
+      case 'e':                                   // erase EEPROM data
+        doSU++;
+        Serial.print(F("Achtung: Löschen der EEPROM Daten!  #"));
+        Serial.println(doSU);
+        if (doSU == 3) {delay(500); menu_eraseEEPROMdata();}
+        break;
       case 's':                                   // Software Reset
         doSU++;
         Serial.print(F("Achtung: Reset durch Aufruf von setup!  #"));
